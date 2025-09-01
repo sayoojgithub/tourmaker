@@ -141,6 +141,13 @@ const clientSchema = new mongoose.Schema(
       type: String,
       required: true,
     },
+      clientByEntryId: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: "ClientByEntry",
+  },
+  createdAtByEntry: {
+    type: Date, // timestamp from ClientByEntry.createdAtByEntry
+  },
     executiveVisitedStatus: {
       type: Boolean,
       default: false,

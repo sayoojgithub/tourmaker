@@ -4,6 +4,7 @@ import mongoose from "mongoose";
 import Executive from "../models/Executive.js";
 import Agency from "../models/Agency.js";
 import PointSchema from "../models/PointSchema.js";
+import ClientByEntry from "../models/ClientByEntry.js";
 import PDFDocument from "pdfkit";
 // ______________Used in profile of Frontoffice_____________
 export const getfrontofficeDetails = async (req, res) => {
@@ -21,10 +22,68 @@ export const getfrontofficeDetails = async (req, res) => {
     res.status(500).json({ message: "Server error", error: error.message });
   }
 };
+export const getAllClientsToCreate = async (req, res) => {
+  try {
+    const {
+      page = 1,
+      limit = 5,
+      search = "",
+      companyId, // required to scope by company
+    } = req.query;
+
+    if (!companyId) {
+      return res.status(400).json({ message: "companyId is required" });
+    }
+    const pageNum = Math.max(parseInt(page, 10) || 1, 1);
+    const pageSize = Math.max(parseInt(limit, 10) || 5, 1);
+
+    const filters = {
+      companyId: new mongoose.Types.ObjectId(companyId),
+      frontOfficeCreatedStatus: false,
+    };
+
+    // search by name or mobileNumber
+    if (search && search.trim()) {
+      const s = search.trim();
+      // if digits, also try exact/startsWith match on mobile
+      const isDigits = /^\d+$/.test(s);
+      filters.$or = [
+        { name: { $regex: s, $options: "i" } },
+        ...(isDigits ? [{ mobileNumber: { $regex: `^${s}`, $options: "i" } }] : [
+          { mobileNumber: { $regex: s, $options: "i" } },
+        ]),
+      ];
+    }
+
+    const [clients, totalClients] = await Promise.all([
+      ClientByEntry.find(filters)
+        .sort({ createdAtByEntry: -1 })
+        .skip((pageNum - 1) * pageSize)
+        .limit(pageSize)
+        .lean(),
+      ClientByEntry.countDocuments(filters),
+    ]);
+
+    const totalPages = Math.max(Math.ceil(totalClients / pageSize), 1);
+
+    return res.status(200).json({
+      clients,
+      totalClients,
+      totalPages,
+      page: pageNum,
+      limit: pageSize,
+    });
+  } catch (err) {
+    console.error("getAllClientsToCreate error:", err);
+    return res
+      .status(500)
+      .json({ message: err.message || "Internal Server Error" });
+  }
+};
 // ______________client registration by front officer______________//
 export const registerClient = async (req, res) => {
   try {
-    const { mobileNumber, tourName, primaryTourName, startDate, companyId } =
+    const { mobileNumber, tourName, primaryTourName, startDate, companyId,clientContactOption } =
       req.body;
 
     // Check for existing client with the same mobileNumber, tourName, startDate, and companyId
@@ -82,12 +141,41 @@ export const registerClient = async (req, res) => {
       }
     }
     // Find an executive for the client based on primaryTourName and minimum count
-    const executive = await Executive.findOne({
-      companyId: companyId,
-      tourName: { $elemMatch: { _id: primaryTourName._id } },
-    })
-      .sort({ count: 1, createdAt: 1 }) // Sort by count in ascending order to get the executive with the least count
-      .exec();
+    // const executive = await Executive.findOne({
+    //   companyId: companyId,
+    //   tourName: { $elemMatch: { _id: primaryTourName._id } },
+    // })
+    //   .sort({ count: 1, createdAt: 1 }) // Sort by count in ascending order to get the executive with the least count
+    //   .exec();
+
+    // if (!executive) {
+    //   return res
+    //     .status(400)
+    //     .json({ message: "No suitable executive found for this tour" });
+    // }
+       const contactValue =
+      clientContactOption?.value;
+
+    let executive = null;
+
+    if (typeof contactValue === "string" && contactValue.toLowerCase() === "whatsapp") {
+      executive = await Executive.findOne({
+        companyId: companyId,
+        name: "PRAJEESH K R",
+      }).exec();
+      // If not found, we'll proceed to the original selection logic below.
+    }
+
+    // Original executive selection (kept exactly the same) — only used if
+    // (a) not a WhatsApp contact, or (b) WhatsApp target exec wasn't found.
+    if (!executive) {
+      executive = await Executive.findOne({
+        companyId: companyId,
+        tourName: { $elemMatch: { _id: primaryTourName._id } },
+      })
+        .sort({ count: 1, createdAt: 1 }) // least count, then oldest
+        .exec();
+    }
 
     if (!executive) {
       return res
@@ -108,6 +196,34 @@ export const registerClient = async (req, res) => {
     await newClient.save();
     // Increment the executive's count field after assigning the client
     await Executive.findByIdAndUpdate(executive._id, { $inc: { count: 1 } });
+    const clientByEntryId =
+      req.body.clientByEntryId || req.body.clientByentry || req.body.clientByEntry;
+
+    if (clientByEntryId && mongoose.Types.ObjectId.isValid(clientByEntryId)) {
+      // fetch the source entry's createdAtByEntry AND mark FO created = true
+      const [entryDoc] = await Promise.all([
+        ClientByEntry.findOne({ _id: clientByEntryId, companyId })
+          .select("createdAtByEntry")
+          .lean(),
+        ClientByEntry.findOneAndUpdate(
+          { _id: clientByEntryId, companyId },
+          { $set: { frontOfficeCreatedStatus: true } },
+          { new: true }
+        ),
+      ]);
+
+      // 🔴 NEW: persist linkage + timestamp on the Client doc
+      if (entryDoc?.createdAtByEntry) {
+        newClient.clientByEntryId = clientByEntryId;
+        newClient.createdAtByEntry = entryDoc.createdAtByEntry;
+      } else {
+        // still save the linkage even if timestamp was not found
+        newClient.clientByEntryId = clientByEntryId;
+      }
+
+      // save again with the new fields
+      await newClient.save();
+    }
 
     res
       .status(201)
@@ -274,6 +390,7 @@ export const downloadClientsData = async (req, res) => {
     const clients = await Client.find({
       frontOfficerId: new mongoose.Types.ObjectId(userId),
       createdAt: { $gte: start, $lte: end },
+      createdAtByEntry: { $gte: start, $lte: end}
     });
 
     if (!clients.length) {
@@ -885,5 +1002,36 @@ console.log(matchFilters)
   } catch (error) {
     console.error("Error fetching clients:", error);
     res.status(500).json({ message: "Failed to fetch clients" });
+  }
+};
+export const getTakenCount = async (req, res) => {
+  try {
+    const { companyId, startDate, endDate } = req.query;
+
+    if (!companyId || !mongoose.Types.ObjectId.isValid(companyId)) {
+      return res.status(400).json({ message: "Valid companyId is required" });
+    }
+
+    // Default to "today" if not provided
+    const todayStr = new Date().toISOString().split("T")[0];
+    const start = new Date(startDate || todayStr);
+    start.setHours(0, 0, 0, 0);
+    const end = new Date(endDate || todayStr);
+    end.setHours(23, 59, 59, 999);
+
+    const match = {
+      companyId: new mongoose.Types.ObjectId(companyId),   // ← switched to companyId
+      createdAtByEntry: { $gte: start, $lte: end },
+    };
+
+    const taken = await ClientByEntry.countDocuments(match);
+    return res.json({
+      taken,
+      startDate: start.toISOString(),
+      endDate: end.toISOString(),
+    });
+  } catch (err) {
+    console.error("getTakenCount error:", err);
+    return res.status(500).json({ message: "Failed to fetch taken count" });
   }
 };

@@ -56,6 +56,9 @@ const Header = () => {
     if (role === "customer care") {
       navigate("/customcare-profile");
     }
+    if (role === "entry") {
+      navigate("/entry-profile")
+    }
   }
 
   return (

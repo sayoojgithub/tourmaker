@@ -287,6 +287,7 @@ const EmployeeRegistration = () => {
             <option value="billing">Billing</option>
             <option value="booking">Booking</option>
             <option value="customer care">Customer Care</option>
+            <option value="entry">Entry</option>
           </select>
           {errors.role && <p className="text-red-500 text-sm">{errors.role}</p>}
         </div>

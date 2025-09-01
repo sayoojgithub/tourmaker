@@ -6,6 +6,7 @@ import Booking from "../models/Booking.js";
 import Purchase from "../models/Purchase.js";
 import Agency from "../models/Agency.js";
 import CustomerCare from "../models/CustomerCare.js";
+import Entry from "../models/Entry.js";
 import jwt from "jsonwebtoken";
 import bcrypt from "bcryptjs";
 import { generateOTP, sendOTPEmail } from "../Utils/Otp.js";
@@ -20,6 +21,7 @@ const findUserByEmail = async (email) => {
   if (!user) user = await Purchase.findOne({ email });
   if (!user) user = await Agency.findOne({ email });
   if (!user) user = await CustomerCare.findOne({ email });
+  if (!user) user = await Entry.findOne({ email });
 
   return user;
 };

@@ -15,6 +15,8 @@ import PurchaseProfile from '../pages/Purchase/PurchaseProfile';
 import BillingProfile from '../pages/Billing/BillingProfile';
 import BookingProfile from '../pages/Booking/BookingProfile';
 import CustomerCareProfile from '../pages/Customercare/CustomerCareProfile';
+import EntryProfile from '../pages/Entry/EntryProfile';
+
 //import ProtectedRoute from '../components/ProtectedRoute';
 import ProtectedRoute from '../components/protectedRoute';
 
@@ -89,6 +91,14 @@ const Router = () => {
         element={
           <ProtectedRoute requiredRole="customer care">
             <CustomerCareProfile/>
+          </ProtectedRoute>
+        }
+      />
+       <Route
+        path="/entry-profile"
+        element={
+          <ProtectedRoute requiredRole="entry">
+            <EntryProfile/>
           </ProtectedRoute>
         }
       />

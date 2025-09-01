@@ -13,6 +13,7 @@ import purchaserRoute from './Routes/purchase.js'
 import billingRoute from './Routes/billing.js'
 import bookingRoute from './Routes/booking.js'
 import customercareRoute from './Routes/customercare.js'
+import entryRoute from './Routes/entry.js'
 import Client from "./models/Client.js"
 dotenv.config()
 
@@ -53,6 +54,7 @@ app.use('/api/v1/purchaser',purchaserRoute)
 app.use('/api/v1/billing',billingRoute)
 app.use('/api/v1/booking',bookingRoute)
 app.use('/api/v1/customercare',customercareRoute) 
+app.use('/api/v1/entry',entryRoute)
 
 // Function to update the ongoingStatus of clients
 const updateOngoingStatus = async () => {

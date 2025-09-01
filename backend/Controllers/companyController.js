@@ -8,6 +8,7 @@ import Destination from "../models/Destination.js";
 import CustomerCare from "../models/CustomerCare.js";
 import Booking from "../models/Booking.js"
 import Client from "../models/Client.js";
+import Entry from "../models/Entry.js";
 import bcrypt from "bcryptjs";
 import mongoose from "mongoose";
 
@@ -125,7 +126,8 @@ export const employeeRegistration = async (req, res) => {
       (await Purchase.findOne({ email })) ||
       (await CustomerCare.findOne({ email })) ||
       (await Booking.findOne({ email })) ||
-      (await Agency.findOne({ email }));
+      (await Agency.findOne({ email })) ||
+      (await Entry.findOne({email})) ;
     if (emailExists) {
       return res.status(400).json({ message: "Email already exists" });
     }
@@ -139,7 +141,8 @@ export const employeeRegistration = async (req, res) => {
       (await Purchase.findOne({ mobileNumber })) ||
       (await CustomerCare.findOne({ mobileNumber })) ||
       (await Booking.findOne({ mobileNumber })) ||
-      (await Agency.findOne({ mobileNumber }));
+      (await Agency.findOne({ mobileNumber })) ||
+      (await Entry.findOne({ mobileNumber })) ;
     if (mobileNumberExists) {
       return res.status(400).json({ message: "Mobile number already exists" });
     }
@@ -169,6 +172,9 @@ export const employeeRegistration = async (req, res) => {
         break;  
         case "booking":
           UserModel = Booking;
+          break;
+        case "entry":
+          UserModel = Entry;
           break;
       default:
         return res.status(400).json({ message: "Invalid role" });

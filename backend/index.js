@@ -15,6 +15,11 @@ import bookingRoute from './Routes/booking.js'
 import customercareRoute from './Routes/customercare.js'
 import entryRoute from './Routes/entry.js'
 import Client from "./models/Client.js"
+import path from 'path'
+import { fileURLToPath } from "url";
+//For ESM __dirname
+const __filename = fileURLToPath(import.meta.url);
+const _dirname = path.dirname(__filename); // Fixed: removed asterisks
 dotenv.config()
 
 const app=express()
@@ -24,9 +29,9 @@ const corsOption={
     origin:true 
 }  
 
-app.get('/',(req,res)=>{
-    res.send('Api is working')
-}) 
+// app.get('/',(req,res)=>{
+//     res.send('Api is working')
+// }) 
 //database connection
 const connectDB=async()=>{ 
     try {
@@ -141,7 +146,18 @@ updateCompletedStatus();
 
 
 
-
+if (process.env.NODE_ENV === 'production') {
+    const parentDir = path.join(_dirname, '..'); // project root (../)
+    const distPath = path.join(parentDir, 'frontend', 'dist');
+    app.use(express.static(distPath));
+    
+    // Fixed: Use wildcard (*) instead of regex pattern for Express 5.x
+    // app.get('*', (req, res) => {
+    //     res.sendFile(path.join(distPath, 'index.html'));
+    // });
+} else {
+    app.get('/', (req, res) => res.send('Server is Ready'));
+}
 app.listen(port, () => {
     connectDB();
    console.log('server is running')

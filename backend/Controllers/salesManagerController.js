@@ -2211,3 +2211,156 @@ doc.end();
     res.status(500).json({ message: "Failed to generate report" });
   }
 };
+
+export const downloadFrontOfficerMonthlyReport = async (req, res) => {
+  try {
+    const { frontOfficerId, startDate, endDate } = req.body;
+
+    if (!frontOfficerId || !startDate || !endDate) {
+      return res
+        .status(400)
+        .json({ error: "frontOfficerId, startDate and endDate are required" });
+    }
+
+    const frontoffice = await FrontOffice.findById(frontOfficerId);
+    if (!frontoffice) {
+      return res.status(404).json({ error: "FrontOffice not found" });
+    }
+
+    const start = new Date(startDate);
+    const end = new Date(endDate);
+    end.setHours(23, 59, 59, 999);
+
+    const filteredCreationPoints = frontoffice.creationPoints.filter((cp) => {
+      const cpDate = new Date(cp.date);
+      return cpDate >= start && cpDate <= end;
+    });
+
+    if (filteredCreationPoints.length === 0) {
+      return res.status(404).json({ error: "No creation points found in range" });
+    }
+
+    const doc = new PDFDocument({ margin: 40, size: "A4" });
+
+    res.setHeader("Content-Type", "application/pdf");
+    res.setHeader(
+      "Content-Disposition",
+      `attachment; filename=frontoffice_report_${frontoffice.name}.pdf`
+    );
+    doc.pipe(res);
+
+    // Helpers
+    const formatDate = (date) => {
+      const d = new Date(date);
+      const day = String(d.getDate()).padStart(2, "0");
+      const month = String(d.getMonth() + 1).padStart(2, "0");
+      const year = d.getFullYear();
+      return `${day}/${month}/${year}`;
+    };
+
+    const formatTime = (date) => {
+      const d = new Date(date);
+      let hours = d.getHours();
+      const minutes = String(d.getMinutes()).padStart(2, "0");
+      const ampm = hours >= 12 ? "PM" : "AM";
+      hours = hours % 12 || 12;
+      return `${hours}:${minutes} ${ampm}`;
+    };
+
+    // Header
+    doc.fontSize(20).font("Helvetica-Bold").text(`FrontOffice Monthly Report`, { align: "center" });
+    doc.moveDown(0.3);
+    doc.fontSize(10).font("Helvetica").text(`Name: ${frontoffice.name}`, { align: "center" });
+    doc.text(`Company: ${frontoffice.companyName}`, { align: "center" });
+    doc.text(`Report Period: ${formatDate(start)} - ${formatDate(end)}`, { align: "center" });
+    doc.text(`Downloaded On: ${formatDate(new Date())} ${formatTime(new Date())}`, { align: "center" });
+    doc.moveDown(1);
+
+    // Table setup
+    const margin = 50;
+    const rowHeight = 25;
+    const colWidths = [100, 100, 100, 100, 100];
+    const headers = ["Date", "Percentage", "Point", "Sales Point", "Total"];
+
+    let y = doc.y;
+
+    // Draw header with background
+    headers.forEach((header, i) => {
+      doc.rect(margin + i * colWidths[i], y, colWidths[i], rowHeight)
+        .fillAndStroke("#4B6CB7", "#000") // blue header with border
+        .fillColor("#FFFFFF")
+        .font("Helvetica-Bold")
+        .fontSize(12)
+        .text(header, margin + i * colWidths[i] + 5, y + 7, { width: colWidths[i] - 10, align: "center" });
+    });
+
+    y += rowHeight;
+    let grandTotal = 0;
+    const pageHeight = doc.page.height - 50;
+
+    // Draw table rows
+    filteredCreationPoints.forEach((cp, index) => {
+      if (y + rowHeight > pageHeight) {
+        doc.addPage();
+        y = 50;
+        // redraw headers
+        headers.forEach((header, i) => {
+          doc.rect(margin + i * colWidths[i], y, colWidths[i], rowHeight)
+            .fillAndStroke("#4B6CB7", "#000")
+            .fillColor("#FFFFFF")
+            .font("Helvetica-Bold")
+            .fontSize(12)
+            .text(header, margin + i * colWidths[i] + 5, y + 7, { width: colWidths[i] - 10, align: "center" });
+        });
+        y += rowHeight;
+      }
+
+      const cpDateStr = formatDate(cp.date);
+      const percentage = cp.percentage;
+      const awardedPoint = cp.awardedPoint;
+
+      const salesOnDate = frontoffice.salesPoints.filter((sp) => {
+        const spDate = new Date(sp.date);
+        return (
+          spDate.getFullYear() === cp.date.getFullYear() &&
+          spDate.getMonth() === cp.date.getMonth() &&
+          spDate.getDate() === cp.date.getDate()
+        );
+      });
+
+      const salesPoint = salesOnDate.length;
+      const total = awardedPoint + salesPoint;
+      grandTotal += total;
+
+      const row = [cpDateStr, percentage, awardedPoint, salesPoint, total];
+
+      // Alternating row colors
+      const fillColor = index % 2 === 0 ? "#F0F0F0" : "#FFFFFF";
+
+      row.forEach((text, i) => {
+        doc.rect(margin + i * colWidths[i], y, colWidths[i], rowHeight)
+          .fillAndStroke(fillColor, "#000")
+          .fillColor("#000000")
+          .font("Helvetica")
+          .fontSize(11)
+          .text(text.toString(), margin + i * colWidths[i] + 5, y + 7, { width: colWidths[i] - 10, align: "center" });
+      });
+
+      y += rowHeight;
+    });
+
+    // Grand Total
+    y += 10;
+    doc.rect(margin, y, colWidths.reduce((a, b) => a + b), rowHeight)
+       .fillAndStroke("#D1E7DD", "#000")
+       .fillColor("#000")
+       .font("Helvetica-Bold")
+       .fontSize(12)
+       .text(`Grand Total: ${grandTotal}`, margin + 5, y + 7);
+
+    doc.end();
+  } catch (error) {
+    console.error("Error generating report:", error);
+    res.status(500).json({ error: "Server error" });
+  }
+};

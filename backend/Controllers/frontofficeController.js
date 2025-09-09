@@ -495,7 +495,12 @@ console.log("Total Points Today:", totalPointsToday);
       .fontSize(16)
       .font("Helvetica-Bold")
       .text(`FRONT OFFICE: ${frontOfficer.name.toUpperCase()}`, { align: "center" });
-
+    doc.moveDown(0.3);
+doc
+  .fontSize(13)
+  .font("Helvetica")
+  .fillColor("black")
+  .text(`Company: ${frontOfficer.companyName}`, { align: "center" });
    // Move down a little
 doc.moveDown(0.5);
 
@@ -511,7 +516,7 @@ doc
   doc
     .fontSize(12)
     .font("Helvetica")
-    .text(`Convertion Rate: ${percentage}`, { align: "center" })
+    .text(`Convertion Rate: ${percentage}%`, { align: "center" })
     .fillColor("red");
   doc.moveDown(1);
 

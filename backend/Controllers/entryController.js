@@ -211,6 +211,10 @@ export const downloadClientsReport = async (req, res) => {
       doc.font("Helvetica-Bold").fontSize(16).fillColor("black");
       doc.text(`ENTRY: ${String(officer.name || "").toUpperCase()}`, { align: "center" });
       doc.moveDown(0.25);
+       // Company Name (added here)
+      doc.font("Helvetica").fontSize(12).fillColor("black");
+      doc.text(`Company: ${officer.companyName || "N/A"}`, { align: "center" });
+      doc.moveDown(0.25);
       doc.font("Helvetica").fontSize(11);
       doc.text(`Date Range: ${s} to ${e}`, { align: "center" });
       doc.moveDown(0.15);

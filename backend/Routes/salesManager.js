@@ -19,7 +19,8 @@ import {
   downloadClientsDataOfFrontOfficer,
   downloadExecutiveRemarksReport,
   getDestinationsBySalesManager,
-  downloadDestinationBasedClientReport
+  downloadDestinationBasedClientReport,
+  downloadFrontOfficerMonthlyReport
   
 } from "../Controllers/salesManagerController.js";
 
@@ -44,6 +45,7 @@ router.post("/downloadClientsDataOfFrontOfficer", downloadClientsDataOfFrontOffi
 router.post("/downloadExecutiveRemarksReport", downloadExecutiveRemarksReport);
 router.get("/destinations/:userId", getDestinationsBySalesManager);
 router.post("/downloadDestinationBasedClientReport", downloadDestinationBasedClientReport);
+router.post("/downloadFrontOfficerMonthlyReport", downloadFrontOfficerMonthlyReport);
 
 
 

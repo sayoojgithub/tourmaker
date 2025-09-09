@@ -1170,6 +1170,7 @@ const ClientRegistration = ({ prefill, clientByEntryId }) => {
             type="text"
             placeholder="Mobile Number"
             value={formData.mobileNumber}
+            readOnly
             onChange={(e) => (
               setFormData({ ...formData, mobileNumber: e.target.value }),
               errors.mobileNumber && setErrors({ ...errors, mobileNumber: "" })

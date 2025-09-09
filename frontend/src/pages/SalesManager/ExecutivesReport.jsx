@@ -195,6 +195,47 @@ console.log(selectedFrontOfficer,singleDate)
     toast.error("Error during download");
   }
 };
+const handleFrontOfficerMonthlyDownload = async () => {
+  if (!selectedFrontOfficer || !startDate || !endDate) {
+    toast.error("Please select front officer and date range");
+    return;
+  }
+
+  try {
+    const response = await fetch(
+      `${BASE_URL}/salesManager/downloadFrontOfficerMonthlyReport`,
+      {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          startDate,
+          endDate,
+          frontOfficerId: selectedFrontOfficer, // ✅ matches backend
+        }),
+      }
+    );
+
+    if (response.ok) {
+      const blob = await response.blob();
+      const url = window.URL.createObjectURL(blob);
+      const filename = `frontofficer_monthly_report`;
+
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = filename;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+
+      toast.success("Front officer monthly report downloaded");
+    } else {
+      const errorData = await response.json();
+      toast.error(errorData.error || "Failed to download");
+    }
+  } catch (err) {
+    toast.error("Error during download");
+  }
+};
 
   return (
     <div className="relative flex min-h-15 flex-col justify-center overflow-hidden bg-white/20 py-10 mt-5 shadow-xl">
@@ -212,6 +253,7 @@ console.log(selectedFrontOfficer,singleDate)
           >
             <option value="executive">Executive Report</option>
             <option value="frontoffice">Front Office Report</option>
+            <option value="frontofficeMonthly">Front Office Monthly Report</option>
             <option value="executiveWithRemarks">Executive Report with Client Remarks</option>
             <option value="destination">Destination Based Client Report</option>
           </select>
@@ -315,6 +357,61 @@ console.log(selectedFrontOfficer,singleDate)
                 className="w-full py-2 text-white bg-primaryColor rounded-lg font-bold shadow-sm"
               >
                 Download Front Officer Report
+              </button>
+            </div>
+          )}
+          {/* Front Officer Monthly Report UI */}
+          {reportType === "frontofficeMonthly" && (
+            <div className="flex flex-col space-y-4">
+              <div className="relative">
+                <div
+                  onClick={() => setFODropdownOpen(!foDropdownOpen)}
+                  className="w-full p-2 border border-gray-300 rounded-md cursor-pointer"
+                >
+                  {selectedFrontOfficer
+                    ? frontOfficers.find((fo) => fo._id === selectedFrontOfficer)?.name
+                    : "Select Front Officer"}
+                </div>
+
+                {foDropdownOpen && (
+                  <ul className="absolute w-full mt-1 bg-white border border-gray-300 rounded-md max-h-48 overflow-y-auto z-10">
+                    {frontOfficers.map((fo) => (
+                      <li
+                        key={fo._id}
+                        className="px-2 py-1 cursor-pointer hover:bg-gray-200"
+                        onClick={() => {
+                          setSelectedFrontOfficer(fo._id);
+                          setFODropdownOpen(false);
+                        }}
+                      >
+                        {fo.name}
+                      </li>
+                    ))}
+                  </ul>
+                )}
+              </div>
+
+              <div className="flex flex-col md:flex-row items-center justify-between space-y-4 md:space-y-0">
+                <input
+                  type="date"
+                  className="w-full p-2 border border-gray-300 rounded-md"
+                  value={startDate}
+                  onChange={(e) => setStartDate(e.target.value)}
+                />
+                <span className="md:mx-2">to</span>
+                <input
+                  type="date"
+                  className="w-full p-2 border border-gray-300 rounded-md"
+                  value={endDate}
+                  onChange={(e) => setEndDate(e.target.value)}
+                />
+              </div>
+
+              <button
+                onClick={handleFrontOfficerMonthlyDownload}
+                className="w-full py-2 text-white bg-primaryColor rounded-lg font-bold shadow-sm"
+              >
+                Download Front Officer Monthly Report
               </button>
             </div>
           )}

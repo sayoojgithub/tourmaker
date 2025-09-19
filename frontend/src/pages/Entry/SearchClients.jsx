@@ -137,10 +137,18 @@ const SearchClients = () => {
             ) : rows.length > 0 ? (
               rows.map((c) => (
                 <tr key={c._id} className="hover:bg-white/20">
-                  <td className="px-4 py-2 border-b font-bold">{c.name || "-"}</td>
+                  {/* <td className="px-4 py-2 border-b font-bold">{c.name || "-"}</td> */}
+                  <td className="px-4 py-2 border-b font-bold whitespace-nowrap overflow-hidden text-ellipsis max-w-[200px]">
+                    {c.name || "-"}
+                  </td>
                   <td className="px-4 py-2 border-b font-bold">{c.mobileNumber}</td>
-                  <td className="px-4 py-2 border-b font-bold">
+                  {/* <td className="px-4 py-2 border-b font-bold">
                     {c.primaryTourName?.label || c.primaryTourName?.value || "-"}
+                  </td> */}
+                  <td className="px-4 py-2 border-b font-bold whitespace-nowrap overflow-hidden text-ellipsis max-w-[250px]">
+                    {c.primaryTourName?.label ||
+                      c.primaryTourName?.value ||
+                      "-"}
                   </td>
                   <td className="px-4 py-2 border-b font-bold">{fmtDate(c.createdAtByEntry)}</td>
                   <td className="px-4 py-2 border-b font-bold">{fmtTime(c.createdAtByEntry)}</td>

@@ -58,7 +58,7 @@ const Report = () => {
   };
 
   return (
-    <div className="relative flex min-h-15 flex-col justify-center overflow-hidden bg-white/20 py-12 mt-3 shadow-xl">
+    <div className="relative flex min-h-15 flex-col justify-center overflow-hidden bg-white/20 py-12 mt-20 shadow-xl">
       <div className="relative bg-white/20 px-4 pt-9 pb-7 shadow-2xl mx-auto w-full max-w-md rounded-lg md:max-w-lg mt-1">
         <div className="mx-auto flex w-full flex-col space-y-8">
           <div className="flex flex-col items-center justify-center text-center space-y-2">

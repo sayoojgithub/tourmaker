@@ -8,7 +8,21 @@ const CreateClient = () => {
     name: "",
     mobileNumber: "",
     primaryTourName: null, // { _id, value, label }
+    connectedThrough: null, // { value, label }  (REQUIRED)
+    clientType: null,       // { value, label }  (OPTIONAL)
   });
+    const connectedThroughOptions = [
+    { value: "social media organic", label: "social media organic" },
+    { value: "social media promotions", label: "social media promotions" },
+    { value: "customer enquiry", label: "customer enquiry" },
+    { value: "by call", label: "by call" },
+    { value: "recommented", label: "recommented" },
+    { value: "instagram chat", label: "instagram chat" },
+  ];
+
+  const clientTypeOptions = [
+    { value: "Urgent Contact", label: "Urgent Contact" },
+  ];
 
   const [destinations, setDestinations] = useState([]);
   const [submitting, setSubmitting] = useState(false);
@@ -84,6 +98,10 @@ const CreateClient = () => {
       toast.error("Please select a primary destination");
       return false;
     }
+        if (!formData.connectedThrough || !formData.connectedThrough.value) {
+      toast.error("Please select Connected Through");
+      return false;
+    }
     return true;
   };
 
@@ -110,6 +128,12 @@ const CreateClient = () => {
           label: formData.primaryTourName.label,
         },
         entryId,
+               connectedThrough: formData.connectedThrough
+         ? { value: formData.connectedThrough.value, label: formData.connectedThrough.label }
+         : null,
+       clientType: formData.clientType
+         ? { value: formData.clientType.value, label: formData.clientType.label }
+         : null,
       };
 
       const res = await fetch(`${BASE_URL}/entry/client-by-entry`, {
@@ -128,6 +152,8 @@ const CreateClient = () => {
         name: "",
         mobileNumber: "",
         primaryTourName: null,
+        connectedThrough: null,
+        clientType: null,
       });
     } catch (e) {
       console.error(e);
@@ -139,7 +165,7 @@ const CreateClient = () => {
 
   return (
     <div className="w-full p-4 bg-white/20 backdrop-blur-md rounded-xl border border-white/30 shadow-lg">
-      <div className="grid grid-cols-1 gap-10 p-4 bg-white/20 rounded-lg shadow-lg">
+      <div className="grid grid-cols-1 gap-4 p-4 bg-white/20 rounded-lg shadow-lg">
         {/* Name */}
         <div>
           <input
@@ -180,6 +206,33 @@ const CreateClient = () => {
             placeholder="Select Primary Destination"
           />
         </div>
+               {/* Connected Through (REQUIRED) */}
+       <div>
+         <Select
+           isClearable
+           options={connectedThroughOptions}
+           styles={customStyles}
+           value={formData.connectedThrough}
+           onChange={(opt) =>
+             setFormData((s) => ({ ...s, connectedThrough: opt }))
+           }
+           placeholder="Connected Through *"
+         />
+       </div>
+
+       {/* Client Type (OPTIONAL) */}
+       <div>
+         <Select
+           isClearable
+           options={clientTypeOptions}
+           styles={customStyles}
+           value={formData.clientType}
+           onChange={(opt) =>
+             setFormData((s) => ({ ...s, clientType: opt }))
+           }
+           placeholder="Client Type (optional)"
+         />
+       </div>
 
         {/* Submit Button */}
         <div>

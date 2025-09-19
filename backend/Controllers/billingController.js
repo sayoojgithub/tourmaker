@@ -2435,7 +2435,7 @@ export const downloadVoucherByBilling = async (req, res) => {
       )
 
       
-    const todayDate = new Date().toLocaleDateString();
+    const todayDate = new Date().toLocaleDateString("en-GB");
     // Add Date on the right section
     doc
       .fontSize(12)

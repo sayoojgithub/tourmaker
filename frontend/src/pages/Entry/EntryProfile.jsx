@@ -63,7 +63,7 @@ const EntryProfile = () => {
       <div className="pb-[30px] px-[20px] rounded-md">
           <div
             className={`flex items-center justify-center ${
-              tab === "Confirmed Clients" ? "mt-[130px]" :tab === "Client Details" ?"mt-[110px]":tab === "Booked Clients" ? "mt-[130px]" :tab === "Search Clients" ? "mt-[130px]": "mt-[40px]"
+              tab === "Confirmed Clients" ? "mt-[130px]" :tab === "Client Details" ?"mt-[110px]":tab === "Booked Clients" ? "mt-[130px]" :tab === "Search Clients" ? "mt-[150px]": "mt-[90px]"
             }`}
           >
             <img

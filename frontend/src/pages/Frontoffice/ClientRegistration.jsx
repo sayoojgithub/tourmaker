@@ -1,15 +1,16 @@
-// import React, { useState, useEffect } from "react";
+
+// import React, { useEffect, useState } from "react";
 // import Select from "react-select";
 // import { toast } from "react-toastify";
 // import { BASE_URL } from "../../config";
 
-// const ClientRegistration = () => {
+// const ClientRegistration = ({ prefill, clientByEntryId }) => {
 //   const [formData, setFormData] = useState({
 //     name: "",
 //     mobileNumber: "",
 //     whatsappNumber: "",
 //     additionalNumber: "",
-//     primaryTourName: "",
+//     primaryTourName: null, // react-select option: { _id, value, label }
 //     tourName: [],
 //     groupType: "",
 //     numberOfPersons: "",
@@ -27,10 +28,15 @@
 //     additionalRequirments: "",
 //     gstNumber: "",
 //   });
+
 //   const [destinations, setDestinations] = useState([]);
-//   const [loading, setLoading] = useState(false);
+//   const [loading, setLoading] = useState(false); // for destinations select
 //   const [errors, setErrors] = useState({});
-//   const [isLoading, setIsLoading] = useState(false);
+//   const [isLoading, setIsLoading] = useState(false); // submit state
+
+//   const hasPrefill =
+//     !!(prefill && (prefill.mobileNumber || prefill.primaryTourName || prefill.name));
+
 //   const customStyles = {
 //     control: (base, state) => ({
 //       ...base,
@@ -39,11 +45,11 @@
 //       boxShadow: state.isFocused ? "0 0 5px rgba(0, 120, 255, 0.5)" : "none",
 //       border: state.isFocused ? "2px solid #007BFF" : "1px solid #ccc",
 //       padding: "5px",
-//       height: "50px", // Keep a fixed height
+//       height: "50px",
 //       display: "flex",
 //       alignItems: "center",
-//       overflowX: "auto", // Enable horizontal scrolling
-//       whiteSpace: "nowrap", // Prevent wrapping of items
+//       overflowX: "auto",
+//       whiteSpace: "nowrap",
 //     }),
 //     option: (base, state) => ({
 //       ...base,
@@ -51,10 +57,7 @@
 //       color: state.isFocused ? "white" : "black",
 //       padding: "10px",
 //       cursor: "pointer",
-//       "&:hover": {
-//         backgroundColor: "#0056b3",
-//         color: "white",
-//       },
+//       "&:hover": { backgroundColor: "#0056b3", color: "white" },
 //     }),
 //     multiValue: (base) => ({
 //       ...base,
@@ -62,46 +65,33 @@
 //       color: "white",
 //       borderRadius: "5px",
 //       padding: "3px 5px",
-//       margin: "2px", // Add some margin for spacing between items
+//       margin: "2px",
 //       display: "flex",
 //       alignItems: "center",
-//       whiteSpace: "nowrap", // Prevent text from wrapping in individual items
+//       whiteSpace: "nowrap",
 //     }),
 //     multiValueLabel: (base) => ({
 //       ...base,
 //       color: "white",
-//       padding: "0 5px", // Add some horizontal padding
+//       padding: "0 5px",
 //     }),
 //     multiValueRemove: (base) => ({
 //       ...base,
 //       color: "white",
 //       cursor: "pointer",
-//       "&:hover": {
-//         backgroundColor: "#0056b3",
-//         color: "white",
-//       },
+//       "&:hover": { backgroundColor: "#0056b3", color: "white" },
 //     }),
-//     placeholder: (base) => ({
-//       ...base,
-//       color: "#aaa",
-//       fontSize: "0.9rem",
-//     }),
+//     placeholder: (base) => ({ ...base, color: "#aaa", fontSize: "0.9rem" }),
 //     dropdownIndicator: (base) => ({
 //       ...base,
 //       color: "#007BFF",
-//       "&:hover": {
-//         color: "#0056b3",
-//       },
+//       "&:hover": { color: "#0056b3" },
 //     }),
-//     indicatorSeparator: () => ({
-//       display: "none",
-//     }),
+//     indicatorSeparator: () => ({ display: "none" }),
 //     clearIndicator: (base) => ({
 //       ...base,
 //       color: "#ccc",
-//       "&:hover": {
-//         color: "#007BFF",
-//       },
+//       "&:hover": { color: "#007BFF" },
 //     }),
 //     menu: (base) => ({
 //       ...base,
@@ -109,18 +99,24 @@
 //       borderRadius: "10px",
 //       boxShadow: "0 4px 10px rgba(0, 0, 0, 0.1)",
 //       zIndex: 10,
-//       maxHeight: "100px", // Set max height for the dropdown menu
-//       overflowY: "auto", // Enable vertical scroll if content exceeds max height
+//       maxHeight: "100px",
+//       overflowY: "auto",
 //     }),
 //   };
 
+//   // -------- destinations ----------
 //   const fetchDestinations = async () => {
 //     try {
-//       setLoading(true); // Set loading to true before fetching
-//       const storedUser = JSON.parse(localStorage.getItem('user'));
-//       const response = await fetch(`${BASE_URL}/purchaser/getDestinationsName?companyId=${storedUser.companyId}`);
+//       setLoading(true);
+//       const storedUser = JSON.parse(localStorage.getItem("user"));
+//       if (!storedUser?.companyId) {
+//         throw new Error("Company not found in local storage.");
+//       }
+//       const response = await fetch(
+//         `${BASE_URL}/purchaser/getDestinationsName?companyId=${storedUser.companyId}`
+//       );
 //       if (!response.ok) {
-//         const errorData = await response.json();
+//         const errorData = await response.json().catch(() => ({}));
 //         throw new Error(errorData.message || "Failed to fetch destinations");
 //       }
 //       const data = await response.json();
@@ -132,226 +128,171 @@
 //       setDestinations(options);
 //     } catch (error) {
 //       console.error("Failed to fetch destinations:", error);
-//       toast.error(
-//         error.message || "An error occurred while fetching destinations"
-//       );
+//       toast.error(error.message || "An error occurred while fetching destinations");
 //     } finally {
-//       setLoading(false); // Set loading to false after fetching
+//       setLoading(false);
 //     }
 //   };
 
+//   useEffect(() => {
+//     fetchDestinations();
+//   }, []);
+
+//   // -------- prefill enforcement ----------
+//   useEffect(() => {
+//     if (hasPrefill) {
+//       setFormData((s) => ({
+//         ...s,
+//         name: prefill.name || "",
+//         mobileNumber: prefill.mobileNumber || "",
+//         primaryTourName: prefill.primaryTourName || null, // {_id,value,label}
+        
+//       }));
+//     }
+//     // eslint-disable-next-line react-hooks/exhaustive-deps
+//   }, [JSON.stringify(prefill)]);
+
+//   // sync prefilled primaryTourName to actual option object after destinations load
+//   useEffect(() => {
+//     if (formData.primaryTourName && destinations.length) {
+//       const match = destinations.find((d) => d._id === formData.primaryTourName._id);
+//       if (match) {
+//         setFormData((s) => ({ ...s, primaryTourName: match }));
+//       }
+//     }
+//     // eslint-disable-next-line react-hooks/exhaustive-deps
+//   }, [destinations.length]);
+
 //   const handleChange = (selectedOption, name) => {
-//     setFormData({
-//       ...formData,
-//       [name]: selectedOption,
-//     });
+//     setFormData((prev) => ({ ...prev, [name]: selectedOption }));
 //   };
+
+//   // -------- pincode autofill ----------
 //   const fetchPincodeDetails = async (pincode) => {
 //     try {
-//       console.log("Fetching details for pincode:", pincode); // Log pincode
-//       const response = await fetch(
-//         `https://api.postalpincode.in/pincode/${pincode}`
-//       );
-//       console.log("Fetch response status:", response.status); // Log HTTP status
-//       if (!response.ok) {
-//         throw new Error("Network response was not ok");
-//       }
+//       const response = await fetch(`https://api.postalpincode.in/pincode/${pincode}`);
+//       if (!response.ok) throw new Error("Network response was not ok");
 //       const data = await response.json();
-//       console.log("API Response:", data); // Log full response to debug
-//       if (data[0].Status !== "Success") {
+//       if (!Array.isArray(data) || !data[0] || data[0].Status !== "Success") {
 //         toast.error("Invalid Pincode , Please check the pincode.");
-//         return {
-//           error: "Invalid Pincode",
-//           details: null,
-//         };
+//         return { error: "Invalid Pincode", details: null };
 //       }
-//       const postOffice = data[0].PostOffice[0];
-//       if (!postOffice) {
-//         throw new Error("No Post Office found for this pincode");
-//       }
-//       return {
-//         country: postOffice.Country,
-//         state: postOffice.State,
-//         district: postOffice.District,
-//       };
+//       const po = data[0].PostOffice?.[0];
+//       if (!po) throw new Error("No Post Office found for this pincode");
+//       return { country: po.Country, state: po.State, district: po.District };
 //     } catch (error) {
 //       console.error("Error fetching pincode details:", error.message);
 //       toast.error(error.message);
-//       return {
-//         error: error.message,
-//         details: null,
-//       };
+//       return { error: error.message, details: null };
 //     }
 //   };
 
 //   const handlePincodeChange = async (e) => {
 //     const value = e.target.value;
-
-//     // Set the pincode value and reset district and state to null
 //     setFormData((prevState) => ({
 //       ...prevState,
 //       pincode: value,
-//       district: "", // Reset district
-//       state: "", // Reset state
+//       district: "",
+//       state: "",
 //     }));
-//     // Check if the pincode length exceeds 6 digits
 //     if (value.length > 6) {
 //       toast.error("Pincode should be exactly 6 digits.");
-//       return; // Exit the function if the pincode is invalid
+//       return;
 //     }
-
-//     // Check if the pincode is completely filled (assuming it's 6 digits)
 //     if (value.length === 6) {
 //       const details = await fetchPincodeDetails(value);
 //       if (details && !details.error) {
-//         setFormData((prevState) => ({
-//           ...prevState,
+//         setFormData((prev) => ({
+//           ...prev,
 //           district: details.district || "",
 //           state: details.state || "",
 //         }));
 //       }
 //     }
 //   };
-//   // Function to calculate the number of days
+
+//   // -------- days calculation ----------
 //   const calculateNumberOfDays = (startDate, endDate) => {
 //     const start = new Date(startDate);
 //     const end = new Date(endDate);
-//     const today = new Date(); // Get the current date
-
-//     // Set the time of today's date to midnight for accurate date comparison
+//     const today = new Date();
 //     today.setHours(0, 0, 0, 0);
-
-//     // Check if start date or end date is in the past
 //     if (start < today) {
 //       toast.error("Start date cannot be in the past.");
 //       return "";
 //     }
-
 //     if (end < today) {
 //       toast.error("End date cannot be in the past.");
 //       return "";
 //     }
-
-//     // Ensure the start date is before the end date
 //     if (start > end) {
 //       toast.error("Start date should be before the end date.");
 //       return "";
 //     }
-
-//     // Calculate the difference in milliseconds
 //     const timeDiff = end - start;
-
-//     // Convert the difference to days (1000 ms * 60 s * 60 min * 24 hrs)
 //     const daysDiff = Math.ceil(timeDiff / (1000 * 60 * 60 * 24)) + 1;
-
 //     return daysDiff >= 0 ? daysDiff : "";
 //   };
 
-//   // Use useEffect to automatically update the number of days when startDate or endDate changes
 //   useEffect(() => {
 //     if (formData.startDate && formData.endDate) {
 //       const days = calculateNumberOfDays(formData.startDate, formData.endDate);
-//       setFormData((prevState) => ({
-//         ...prevState,
-//         numberOfDays: days.toString(),
-//       }));
+//       setFormData((prev) => ({ ...prev, numberOfDays: days.toString() }));
 //     }
 //   }, [formData.startDate, formData.endDate]);
 
-//   console.log(formData);
+//   // -------- validation ----------
 //   const validateForm = () => {
 //     const newErrors = {};
-
-//     if (!formData.name.trim()) {
-//       newErrors.name = "It is mandatory.";
-//     }
-//     if (!formData.mobileNumber.trim()) {
-//       newErrors.mobileNumber = "It is mandatory.";
-//     } else if (!/^\d+$/.test(formData.mobileNumber)) {
-//       newErrors.mobileNumber = "must be digits.";
-//     }
-
-//     if (!formData.primaryTourName) {
-//       newErrors.primaryTourName = "It is mandatory.";
-//     }
-//     // if (!formData.tourName.length) {
-//     //   newErrors.tourName = "It is mandatory.";
-//     // }
-//     if (!formData.groupType) {
-//       newErrors.groupType = "It is mandatory.";
-//     }
-//     if (!formData.numberOfPersons) {
-//       newErrors.numberOfPersons = "It is mandatory.";
-//     } else if (
-//       isNaN(formData.numberOfPersons) ||
-//       formData.numberOfPersons <= 0
-//     ) {
+//     if (!formData.name.trim()) newErrors.name = "It is mandatory.";
+//     if (!formData.mobileNumber.trim()) newErrors.mobileNumber = "It is mandatory.";
+//     else if (!/^\d+$/.test(formData.mobileNumber)) newErrors.mobileNumber = "must be digits.";
+//     if (!formData.primaryTourName) newErrors.primaryTourName = "It is mandatory.";
+//     if (!formData.groupType) newErrors.groupType = "It is mandatory.";
+//     if (!formData.numberOfPersons) newErrors.numberOfPersons = "It is mandatory.";
+//     else if (isNaN(formData.numberOfPersons) || Number(formData.numberOfPersons) <= 0)
 //       newErrors.numberOfPersons = "Must be greater than 0.";
-//     }
-//     if (!formData.startDate) {
-//       newErrors.startDate = "It is mandatory.";
-//     }
-//     if (!formData.endDate) {
-//       newErrors.endDate = "It is mandatory.";
-//     }
-//     if (!formData.numberOfDays) {
-//       newErrors.numberOfDays = "It is mandatory.";
-//     }
-//     if (!formData.pincode) {
-//       newErrors.pincode = "It is mandatory.";
-//     }
-//     if (!formData.district) {
-//       newErrors.district = "It is mandatory.";
-//     }
-//     if (!formData.state) {
-//       newErrors.state = "It is mandatory.";
-//     }
-//     if (!formData.clientContactOption) {
-//       newErrors.clientContactOption = "It is mandatory.";
-//     }
-//     if (!formData.clientType) {
-//       newErrors.clientType = "It is mandatory.";
-//     }
-//     if (!formData.clientCurrentLocation) {
-//       newErrors.clientCurrentLocation = "It is mandatory.";
-//     }
-//     if (!formData.connectedThrough) {
-//       newErrors.connectedThrough = "It is mandatory.";
-//     }
-//     if (!formData.behavior) {
-//       newErrors.behavior = "It is mandatory.";
-//     }
+//     if (!formData.startDate) newErrors.startDate = "It is mandatory.";
+//     if (!formData.endDate) newErrors.endDate = "It is mandatory.";
+//     if (!formData.numberOfDays) newErrors.numberOfDays = "It is mandatory.";
+//     if (!formData.pincode) newErrors.pincode = "It is mandatory.";
+//     if (!formData.district) newErrors.district = "It is mandatory.";
+//     if (!formData.state) newErrors.state = "It is mandatory.";
+//     if (!formData.clientContactOption) newErrors.clientContactOption = "It is mandatory.";
+//     if (!formData.clientType) newErrors.clientType = "It is mandatory.";
+//     if (!formData.clientCurrentLocation) newErrors.clientCurrentLocation = "It is mandatory.";
+//     if (!formData.connectedThrough) newErrors.connectedThrough = "It is mandatory.";
+//     if (!formData.behavior) newErrors.behavior = "It is mandatory.";
 
 //     setErrors(newErrors);
-//     return Object.keys(newErrors).length === 0; // Returns true if no errors
+//     return Object.keys(newErrors).length === 0;
 //   };
 
+//   // -------- submit ----------
 //   const handleCreateClient = async () => {
+//     if (!hasPrefill) {
+//       toast.error("Open this form from Clients To Create (＋) to create a client.");
+//       return;
+//     }
 //     if (isLoading) return;
-//     // Perform form validation
 //     if (!validateForm()) {
 //       toast.error("Please correct the errors in the form.");
-//       return; // Prevent the submission if validation fails
+//       return;
 //     }
 //     setIsLoading(true);
 //     try {
-//       // Set loading state if needed
-//       setLoading(true);
-
-//       // Get user data (frontOfficerId and companyId) from localStorage
-//       const userData = JSON.parse(localStorage.getItem("user")); // Ensure 'user' contains both _id and companyId
+//       const userData = JSON.parse(localStorage.getItem("user"));
 //       const frontOfficerId = userData?._id;
 //       const companyId = userData?.companyId;
 
-//       // Prepare the client data to send in the request body
 //       const clientData = {
-//         name: formData.name, // Assume formData holds the input values
+//         name: formData.name,
 //         mobileNumber: formData.mobileNumber,
 //         whatsappNumber: formData.whatsappNumber,
 //         additionalNumber: formData.additionalNumber,
-//         primaryTourName: formData.primaryTourName,
-//         tourName: formData.tourName, // Array of objects
-//         groupType: formData.groupType, // { value, label }
+//         primaryTourName: formData.primaryTourName, // {_id,value,label}
+//         tourName: formData.tourName,               // array of {_id,value,label}
+//         groupType: formData.groupType,             // {value,label}
 //         numberOfPersons: formData.numberOfPersons,
 //         startDate: formData.startDate,
 //         endDate: formData.endDate,
@@ -366,35 +307,30 @@
 //         behavior: formData.behavior,
 //         additionalRequirments: formData.additionalRequirments,
 //         gstNumber: formData.gstNumber,
-//         frontOfficerId: frontOfficerId, // From localStorage
-//         companyId: companyId, // From localStorage
+//         frontOfficerId,
+//         companyId,
+//         clientByEntryId: clientByEntryId,
 //       };
 
-//       // Make the API call to register the client
 //       const response = await fetch(`${BASE_URL}/frontoffice/registerClient`, {
 //         method: "POST",
-//         headers: {
-//           "Content-Type": "application/json",
-//         },
-//         body: JSON.stringify(clientData), // Send clientData as JSON
+//         headers: { "Content-Type": "application/json" },
+//         body: JSON.stringify(clientData),
 //       });
 
 //       if (!response.ok) {
-//         const errorData = await response.json();
+//         const errorData = await response.json().catch(() => ({}));
 //         throw new Error(errorData.message || "Failed to register client");
 //       }
 
-//       // Handle success response
-//       const data = await response.json();
-//       console.log("Client registered successfully:", data);
+//       await response.json();
 //       toast.success("Client registered successfully");
-//       // Reset the form data to initial state
-//       setFormData({
-//         name: "",
-//         mobileNumber: "",
+
+//       // optional: clear non-prefilled fields
+//       setFormData((s) => ({
+//         ...s,
 //         whatsappNumber: "",
 //         additionalNumber: "",
-//         primaryTourName: "",
 //         tourName: [],
 //         groupType: "",
 //         numberOfPersons: "",
@@ -411,20 +347,23 @@
 //         behavior: "",
 //         additionalRequirments: "",
 //         gstNumber: "",
-//       });
+//       }));
 //     } catch (error) {
 //       console.error("Failed to register client:", error);
-//       toast.error(
-//         error.message || "An error occurred while registering the client"
-//       );
+//       toast.error(error.message || "An error occurred while registering the client");
 //     } finally {
-//       // Reset loading state
-//       setLoading(false);
 //       setIsLoading(false);
 //     }
 //   };
+
 //   return (
 //     <div className="w-full  p-4 bg-white/20 backdrop-blur-md rounded-xl border border-white/30 shadow-lg mt-1">
+//       {!hasPrefill && (
+//         <div className="mb-3 p-3 bg-yellow-100 border border-yellow-300 rounded">
+//           Open this form from <b>Clients To Create</b> (click the ＋ on a row) to create a client. The submit button is disabled otherwise.
+//         </div>
+//       )}
+
 //       <form className="grid grid-cols-4 gap-3 p-4 bg-white/20 rounded-lg shadow-lg ">
 //         {/* Row 1 */}
 //         <div>
@@ -448,6 +387,7 @@
 //             type="text"
 //             placeholder="Mobile Number"
 //             value={formData.mobileNumber}
+//             readOnly
 //             onChange={(e) => (
 //               setFormData({ ...formData, mobileNumber: e.target.value }),
 //               errors.mobileNumber && setErrors({ ...errors, mobileNumber: "" })
@@ -460,6 +400,7 @@
 //             </p>
 //           )}
 //         </div>
+
 //         <input
 //           type="text"
 //           placeholder="WhatsApp Number"
@@ -469,6 +410,7 @@
 //           }
 //           className="bg-gray-100 border border-gray-300 rounded-lg p-3 h-12 shadow-md focus:outline-none focus:ring-2 focus:ring-blue-400 transition duration-300 w-full"
 //         />
+
 //         <input
 //           type="text"
 //           placeholder="Additional Number"
@@ -480,7 +422,6 @@
 //         />
 
 //         {/* Row 2 */}
-//         {/* Single-select field for primary destination */}
 //         <div>
 //           <Select
 //             options={destinations}
@@ -493,6 +434,7 @@
 //             placeholder="Select Primary Destination"
 //             styles={customStyles}
 //             onMenuOpen={fetchDestinations}
+//             isLoading={loading}
 //           />
 //           {errors.primaryTourName && (
 //             <p style={{ color: "red", fontWeight: "500" }}>
@@ -512,12 +454,14 @@
 //             }}
 //             placeholder="Select Add-on Destinations"
 //             styles={customStyles}
-//             onMenuOpen={fetchDestinations} // Fetch destinations on menu open
+//             onMenuOpen={fetchDestinations}
+//             isLoading={loading}
 //           />
 //           {errors.tourName && (
 //             <p style={{ color: "red", fontWeight: "500" }}>{errors.tourName}</p>
 //           )}
 //         </div>
+
 //         <div>
 //           <Select
 //             options={[
@@ -531,12 +475,13 @@
 //             placeholder="Select Group Type"
 //             styles={customStyles}
 //           />
-//           {errors.groupType && ( // Show error if groupType has an error
+//           {errors.groupType && (
 //             <p style={{ color: "red", fontWeight: "500" }}>
 //               {errors.groupType}
 //             </p>
 //           )}
 //         </div>
+
 //         <div>
 //           <input
 //             type="text"
@@ -553,6 +498,7 @@
 //             </p>
 //           )}
 //         </div>
+
 //         <div>
 //           <input
 //             type="date"
@@ -593,6 +539,7 @@
 //           disabled
 //           className="bg-gray-100 border border-gray-300 rounded-lg p-3 h-12 shadow-md focus:outline-none focus:ring-2 focus:ring-blue-400 transition duration-300 w-full"
 //         />
+
 //         <div>
 //           <input
 //             type="text"
@@ -605,36 +552,39 @@
 //             <p style={{ color: "red", fontWeight: "500" }}>{errors.pincode}</p>
 //           )}
 //         </div>
+
 //         <div>
-//         <input
-//           type="text"
-//           placeholder="District"
-//           value={formData.district}
-//           onChange={(e) => (
-//             setFormData({ ...formData, district: e.target.value }),
-//             errors.district && setErrors({ ...errors, district: "" })
-//           )}
-//           className="bg-gray-100 border border-gray-300 rounded-lg p-3 h-12 shadow-md focus:outline-none focus:ring-2 focus:ring-blue-400 transition duration-300 w-full"
-//         />
-//         {errors.district && (
+//           <input
+//             type="text"
+//             placeholder="District"
+//             value={formData.district}
+//             onChange={(e) => (
+//               setFormData({ ...formData, district: e.target.value }),
+//               errors.district && setErrors({ ...errors, district: "" })
+//             )}
+//             className="bg-gray-100 border border-gray-300 rounded-lg p-3 h-12 shadow-md focus:outline-none focus:ring-2 focus:ring-blue-400 transition duration-300 w-full"
+//           />
+//           {errors.district && (
 //             <p style={{ color: "red", fontWeight: "500" }}>{errors.district}</p>
 //           )}
 //         </div>
+
 //         <div>
-//         <input
-//           type="text"
-//           placeholder="State"
-//           value={formData.state}
-//           onChange={(e) => (
-//             setFormData({ ...formData, state: e.target.value }),
-//             errors.state && setErrors({ ...errors, state: "" })
-//           )}
-//           className="bg-gray-100 border border-gray-300 rounded-lg p-3 h-12 shadow-md focus:outline-none focus:ring-2 focus:ring-blue-400 transition duration-300 w-full"
-//         />
-//         {errors.state && (
+//           <input
+//             type="text"
+//             placeholder="State"
+//             value={formData.state}
+//             onChange={(e) => (
+//               setFormData({ ...formData, state: e.target.value }),
+//               errors.state && setErrors({ ...errors, state: "" })
+//             )}
+//             className="bg-gray-100 border border-gray-300 rounded-lg p-3 h-12 shadow-md focus:outline-none focus:ring-2 focus:ring-blue-400 transition duration-300 w-full"
+//           />
+//           {errors.state && (
 //             <p style={{ color: "red", fontWeight: "500" }}>{errors.state}</p>
 //           )}
 //         </div>
+
 //         <div>
 //           <Select
 //             options={[
@@ -656,6 +606,7 @@
 //             </p>
 //           )}
 //         </div>
+
 //         <div>
 //           <Select
 //             options={[
@@ -676,6 +627,7 @@
 //             </p>
 //           )}
 //         </div>
+
 //         <div>
 //           <Select
 //             options={[
@@ -722,6 +674,7 @@
 //             </p>
 //           )}
 //         </div>
+
 //         <div>
 //           <Select
 //             options={[
@@ -742,6 +695,7 @@
 //             <p style={{ color: "red", fontWeight: "500" }}>{errors.behavior}</p>
 //           )}
 //         </div>
+
 //         <textarea
 //           placeholder="Additional Requirments"
 //           value={formData.additionalRequirments}
@@ -750,6 +704,7 @@
 //           }
 //           className="bg-gray-100 border border-gray-300 rounded-lg p-3 h-12 shadow-md focus:outline-none focus:ring-2 focus:ring-blue-400 transition duration-300 col-span-1"
 //         />
+
 //         {/* GST Number Field */}
 //         <div className="col-span-4 flex justify-center mt-1">
 //           <input
@@ -765,16 +720,15 @@
 
 //         {/* Create Client Button */}
 //         <div className="col-span-4 flex justify-center mt-1">
-//           {" "}
-//           {/* Centering the button */}
 //           <button
-//             type="button" // Adjust the type based on your form's needs
-//             className="bg-blue-600 text-white font-semibold w-full py-2 px-4 rounded-lg shadow-lg hover:bg-blue-600 transition duration-300"
+//             type="button"
+//             className={`${
+//               hasPrefill ? "bg-blue-600" : "bg-gray-400 cursor-not-allowed"
+//             } text-white font-semibold w-full py-2 px-4 rounded-lg shadow-lg hover:bg-blue-600 transition duration-300`}
 //             onClick={handleCreateClient}
-//             disabled={isLoading}
-
+//             disabled={isLoading || !hasPrefill}
 //           >
-//             Create Client
+//             {isLoading ? "Creating..." : "Create Client"}
 //           </button>
 //         </div>
 //       </form>
@@ -783,6 +737,8 @@
 // };
 
 // export default ClientRegistration;
+
+
 import React, { useEffect, useState } from "react";
 import Select from "react-select";
 import { toast } from "react-toastify";
@@ -805,9 +761,9 @@ const ClientRegistration = ({ prefill, clientByEntryId }) => {
     district: "",
     state: "",
     clientContactOption: "",
-    clientType: "",
+    clientType: "",            // { value, label } or ""
     clientCurrentLocation: "",
-    connectedThrough: "",
+    connectedThrough: "",      // { value, label } or ""
     behavior: "",
     additionalRequirments: "",
     gstNumber: "",
@@ -820,6 +776,12 @@ const ClientRegistration = ({ prefill, clientByEntryId }) => {
 
   const hasPrefill =
     !!(prefill && (prefill.mobileNumber || prefill.primaryTourName || prefill.name));
+
+  // options used only when editing is allowed
+  const CLIENT_TYPE_OPTS = [
+    { value: "Urgent Contact", label: "Urgent Contact" },
+    { value: "Non-Urgent Contact", label: "Non-Urgent Contact" },
+  ];
 
   const customStyles = {
     control: (base, state) => ({
@@ -922,7 +884,7 @@ const ClientRegistration = ({ prefill, clientByEntryId }) => {
     fetchDestinations();
   }, []);
 
-  // -------- prefill enforcement ----------
+  // -------- prefill from parent ----------
   useEffect(() => {
     if (hasPrefill) {
       setFormData((s) => ({
@@ -930,10 +892,24 @@ const ClientRegistration = ({ prefill, clientByEntryId }) => {
         name: prefill.name || "",
         mobileNumber: prefill.mobileNumber || "",
         primaryTourName: prefill.primaryTourName || null, // {_id,value,label}
+        connectedThrough: prefill.connectedThrough || "",  // {value,label} or ""
+        clientType: prefill.clientType || "",              // {value,label} or ""
       }));
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [JSON.stringify(prefill)]);
+
+  // normalize prefilled clientType to actual option instance when editable
+  useEffect(() => {
+    const normalize = (opts, v) =>
+      !v ? "" : opts.find((o) => o.value === (v.value ?? v)) || v;
+
+    setFormData((s) => ({
+      ...s,
+      clientType: normalize(CLIENT_TYPE_OPTS, s.clientType),
+    }));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [hasPrefill]);
 
   // sync prefilled primaryTourName to actual option object after destinations load
   useEffect(() => {
@@ -1044,7 +1020,14 @@ const ClientRegistration = ({ prefill, clientByEntryId }) => {
     if (!formData.clientContactOption) newErrors.clientContactOption = "It is mandatory.";
     if (!formData.clientType) newErrors.clientType = "It is mandatory.";
     if (!formData.clientCurrentLocation) newErrors.clientCurrentLocation = "It is mandatory.";
-    if (!formData.connectedThrough) newErrors.connectedThrough = "It is mandatory.";
+    // Connected Through must come from prefill (readonly input)
+    if (
+      !formData.connectedThrough ||
+      !formData.connectedThrough.value ||
+      !formData.connectedThrough.label
+    ) {
+      newErrors.connectedThrough = "Connected Through is mandatory.";
+    }
     if (!formData.behavior) newErrors.behavior = "It is mandatory.";
 
     setErrors(newErrors);
@@ -1084,9 +1067,9 @@ const ClientRegistration = ({ prefill, clientByEntryId }) => {
         district: formData.district,
         state: formData.state,
         clientContactOption: formData.clientContactOption,
-        clientType: formData.clientType,
+        clientType: formData.clientType,                 // {value,label}
         clientCurrentLocation: formData.clientCurrentLocation,
-        connectedThrough: formData.connectedThrough,
+        connectedThrough: formData.connectedThrough,     // {value,label}
         behavior: formData.behavior,
         additionalRequirments: formData.additionalRequirments,
         gstNumber: formData.gstNumber,
@@ -1124,9 +1107,9 @@ const ClientRegistration = ({ prefill, clientByEntryId }) => {
         district: "",
         state: "",
         clientContactOption: "",
-        clientType: "",
+        clientType: s.clientType,             // keep chosen or prefilled
         clientCurrentLocation: "",
-        connectedThrough: "",
+        connectedThrough: s.connectedThrough, // keep prefilled
         behavior: "",
         additionalRequirments: "",
         gstNumber: "",
@@ -1138,6 +1121,12 @@ const ClientRegistration = ({ prefill, clientByEntryId }) => {
       setIsLoading(false);
     }
   };
+
+  const fmtErr = (k) =>
+    errors[k] ? <p style={{ color: "red", fontWeight: 500 }}>{errors[k]}</p> : null;
+
+  const isUrgentPrefill =
+    !!formData.clientType && formData.clientType.value === "Urgent Contact";
 
   return (
     <div className="w-full  p-4 bg-white/20 backdrop-blur-md rounded-xl border border-white/30 shadow-lg mt-1">
@@ -1160,9 +1149,7 @@ const ClientRegistration = ({ prefill, clientByEntryId }) => {
             )}
             className="bg-gray-100 border border-gray-300 rounded-lg p-3 h-12 shadow-md focus:outline-none focus:ring-2 focus:ring-blue-400 transition duration-300 w-full"
           />
-          {errors.name && (
-            <p style={{ color: "red", fontWeight: "500" }}>{errors.name}</p>
-          )}
+          {fmtErr("name")}
         </div>
 
         <div>
@@ -1177,11 +1164,7 @@ const ClientRegistration = ({ prefill, clientByEntryId }) => {
             )}
             className="bg-gray-100 border border-gray-300 rounded-lg p-3 h-12 shadow-md focus:outline-none focus:ring-2 focus:ring-blue-400 transition duration-300 w-full"
           />
-          {errors.mobileNumber && (
-            <p style={{ color: "red", fontWeight: "500" }}>
-              {errors.mobileNumber}
-            </p>
-          )}
+          {fmtErr("mobileNumber")}
         </div>
 
         <input
@@ -1219,11 +1202,7 @@ const ClientRegistration = ({ prefill, clientByEntryId }) => {
             onMenuOpen={fetchDestinations}
             isLoading={loading}
           />
-          {errors.primaryTourName && (
-            <p style={{ color: "red", fontWeight: "500" }}>
-              {errors.primaryTourName}
-            </p>
-          )}
+          {fmtErr("primaryTourName")}
         </div>
 
         <div>
@@ -1240,9 +1219,7 @@ const ClientRegistration = ({ prefill, clientByEntryId }) => {
             onMenuOpen={fetchDestinations}
             isLoading={loading}
           />
-          {errors.tourName && (
-            <p style={{ color: "red", fontWeight: "500" }}>{errors.tourName}</p>
-          )}
+          {fmtErr("tourName")}
         </div>
 
         <div>
@@ -1258,11 +1235,7 @@ const ClientRegistration = ({ prefill, clientByEntryId }) => {
             placeholder="Select Group Type"
             styles={customStyles}
           />
-          {errors.groupType && (
-            <p style={{ color: "red", fontWeight: "500" }}>
-              {errors.groupType}
-            </p>
-          )}
+          {fmtErr("groupType")}
         </div>
 
         <div>
@@ -1275,11 +1248,7 @@ const ClientRegistration = ({ prefill, clientByEntryId }) => {
             }
             className="bg-gray-100 border border-gray-300 rounded-lg p-3 h-12 shadow-md focus:outline-none focus:ring-2 focus:ring-blue-400 transition duration-300 w-full"
           />
-          {errors.numberOfPersons && (
-            <p style={{ color: "red", fontWeight: "500" }}>
-              {errors.numberOfPersons}
-            </p>
-          )}
+          {fmtErr("numberOfPersons")}
         </div>
 
         <div>
@@ -1292,11 +1261,7 @@ const ClientRegistration = ({ prefill, clientByEntryId }) => {
             }}
             className="bg-gray-100 border p-3 rounded w-full"
           />
-          {errors.startDate && (
-            <p style={{ color: "red", fontWeight: "500" }}>
-              {errors.startDate}
-            </p>
-          )}
+          {fmtErr("startDate")}
         </div>
 
         {/* Row 3 */}
@@ -1310,9 +1275,7 @@ const ClientRegistration = ({ prefill, clientByEntryId }) => {
             )}
             className="bg-gray-100 border p-3 rounded w-full"
           />
-          {errors.endDate && (
-            <p style={{ color: "red", fontWeight: "500" }}>{errors.endDate}</p>
-          )}
+          {fmtErr("endDate")}
         </div>
 
         <input
@@ -1331,9 +1294,7 @@ const ClientRegistration = ({ prefill, clientByEntryId }) => {
             onChange={handlePincodeChange}
             className="bg-gray-100 border border-gray-300 rounded-lg p-3 h-12 shadow-md focus:outline-none focus:ring-2 focus:ring-blue-400 transition duration-300 w-full"
           />
-          {errors.pincode && (
-            <p style={{ color: "red", fontWeight: "500" }}>{errors.pincode}</p>
-          )}
+          {fmtErr("pincode")}
         </div>
 
         <div>
@@ -1347,9 +1308,7 @@ const ClientRegistration = ({ prefill, clientByEntryId }) => {
             )}
             className="bg-gray-100 border border-gray-300 rounded-lg p-3 h-12 shadow-md focus:outline-none focus:ring-2 focus:ring-blue-400 transition duration-300 w-full"
           />
-          {errors.district && (
-            <p style={{ color: "red", fontWeight: "500" }}>{errors.district}</p>
-          )}
+          {fmtErr("district")}
         </div>
 
         <div>
@@ -1363,9 +1322,7 @@ const ClientRegistration = ({ prefill, clientByEntryId }) => {
             )}
             className="bg-gray-100 border border-gray-300 rounded-lg p-3 h-12 shadow-md focus:outline-none focus:ring-2 focus:ring-blue-400 transition duration-300 w-full"
           />
-          {errors.state && (
-            <p style={{ color: "red", fontWeight: "500" }}>{errors.state}</p>
-          )}
+          {fmtErr("state")}
         </div>
 
         <div>
@@ -1383,32 +1340,32 @@ const ClientRegistration = ({ prefill, clientByEntryId }) => {
             placeholder="Client Contact Option"
             styles={customStyles}
           />
-          {errors.clientContactOption && (
-            <p style={{ color: "red", fontWeight: "500" }}>
-              {errors.clientContactOption}
-            </p>
-          )}
+          {fmtErr("clientContactOption")}
         </div>
 
+        {/* Client Type: read-only input if urgent prefilled, else Select */}
         <div>
-          <Select
-            options={[
-              { value: "Urgent Contact", label: "Urgent Contact" },
-              { value: "Non-Urgent Contact", label: "Non-Urgent Contact" },
-            ]}
-            value={formData.clientType}
-            onChange={(selected) => (
-              handleChange(selected, "clientType"),
-              errors.clientType && setErrors({ ...errors, clientType: "" })
-            )}
-            placeholder="Client Type"
-            styles={customStyles}
-          />
-          {errors.clientType && (
-            <p style={{ color: "red", fontWeight: "500" }}>
-              {errors.clientType}
-            </p>
+          {isUrgentPrefill ? (
+            <input
+              type="text"
+              placeholder="Client Type"
+              value="Urgent Contact"
+              readOnly
+              className="bg-gray-100 border border-gray-300 rounded-lg p-3 h-12 shadow-md focus:outline-none transition duration-300 w-full"
+            />
+          ) : (
+            <Select
+              options={CLIENT_TYPE_OPTS}
+              value={formData.clientType || null}
+              onChange={(selected) => (
+                handleChange(selected, "clientType"),
+                errors.clientType && setErrors({ ...errors, clientType: "" })
+              )}
+              placeholder="Client Type"
+              styles={customStyles}
+            />
           )}
+          {fmtErr("clientType")}
         </div>
 
         <div>
@@ -1426,36 +1383,23 @@ const ClientRegistration = ({ prefill, clientByEntryId }) => {
             placeholder="Client Current Location"
             styles={customStyles}
           />
-          {errors.clientCurrentLocation && (
-            <p style={{ color: "red", fontWeight: "500" }}>
-              {errors.clientCurrentLocation}
-            </p>
-          )}
+          {fmtErr("clientCurrentLocation")}
         </div>
 
-        {/* Row 5 */}
+        {/* Connected Through (readonly input, must be prefilled) */}
         <div>
-          <Select
-            options={[
-              { value: "Old Customer", label: "Old Customer" },
-              { value: "Facebook", label: "Facebook" },
-              { value: "Instagram", label: "Instagram" },
-              { value: "Whatsapp", label: "Whatsapp" },
-            ]}
-            value={formData.connectedThrough}
-            onChange={(selected) => (
-              handleChange(selected, "connectedThrough"),
-              errors.connectedThrough &&
-                setErrors({ ...errors, connectedThrough: "" })
-            )}
+          <input
+            type="text"
             placeholder="Connected Through"
-            styles={customStyles}
+            value={
+              formData.connectedThrough?.label ??
+              formData.connectedThrough?.value ??
+              ""
+            }
+            readOnly
+            className="bg-gray-100 border border-gray-300 rounded-lg p-3 h-12 shadow-md focus:outline-none transition duration-300 w-full"
           />
-          {errors.connectedThrough && (
-            <p style={{ color: "red", fontWeight: "500" }}>
-              {errors.connectedThrough}
-            </p>
-          )}
+          {fmtErr("connectedThrough")}
         </div>
 
         <div>
@@ -1474,9 +1418,7 @@ const ClientRegistration = ({ prefill, clientByEntryId }) => {
             placeholder="Client Behavior"
             styles={customStyles}
           />
-          {errors.behavior && (
-            <p style={{ color: "red", fontWeight: "500" }}>{errors.behavior}</p>
-          )}
+          {fmtErr("behavior")}
         </div>
 
         <textarea
@@ -1520,3 +1462,5 @@ const ClientRegistration = ({ prefill, clientByEntryId }) => {
 };
 
 export default ClientRegistration;
+
+

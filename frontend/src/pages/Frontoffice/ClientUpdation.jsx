@@ -747,11 +747,16 @@ const ClientUpdation = ({ clientId }) => {
         {/* Row 5 */}
         <div>
           <Select
-            options={[
-              { value: "Old Customer", label: "Old Customer" },
-              { value: "Facebook", label: "Facebook" },
-              { value: "Instagram", label: "Instagram" },
-              { value: "Whatsapp", label: "Whatsapp" },
+             options={[
+              { value: "social media organic", label: "social media organic" },
+              {
+                value: "social media promotions",
+                label: "social media promotions",
+              },
+              { value: "customer enquiry", label: "customer enquiry" },
+              { value: "by call", label: "by call" },
+              { value: "recommented", label: "recommented" },
+              { value: "instagram chat", label: "instagram chat" },
             ]}
             value={formData.connectedThrough}
             onChange={(selected) => (

@@ -46,6 +46,14 @@ const ClientByEntrySchema = new mongoose.Schema(
       type: Boolean,
       default: false,
     },
+        connectedThrough: {
+      value: { type: String, },
+      label: { type: String, },
+    },
+    clientType: {
+      value: { type: String },
+      label: { type: String },
+    },
   },
   {
     timestamps: true, // keeps createdAt/updatedAt too (separate from createdAtByEntry)

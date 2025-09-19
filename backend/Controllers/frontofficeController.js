@@ -22,46 +22,113 @@ export const getfrontofficeDetails = async (req, res) => {
     res.status(500).json({ message: "Server error", error: error.message });
   }
 };
+// export const getAllClientsToCreate = async (req, res) => {
+//   try {
+//     const {
+//       page = 1,
+//       limit = 5,
+//       search = "",
+//       companyId, // required to scope by company
+//     } = req.query;
+
+//     if (!companyId) {
+//       return res.status(400).json({ message: "companyId is required" });
+//     }
+//     const pageNum = Math.max(parseInt(page, 10) || 1, 1);
+//     const pageSize = Math.max(parseInt(limit, 10) || 5, 1);
+
+//     const filters = {
+//       companyId: new mongoose.Types.ObjectId(companyId),
+//       frontOfficeCreatedStatus: false,
+//     };
+
+//     // search by name or mobileNumber
+//     if (search && search.trim()) {
+//       const s = search.trim();
+//       // if digits, also try exact/startsWith match on mobile
+//       const isDigits = /^\d+$/.test(s);
+//       filters.$or = [
+//         { name: { $regex: s, $options: "i" } },
+//         ...(isDigits ? [{ mobileNumber: { $regex: `^${s}`, $options: "i" } }] : [
+//           { mobileNumber: { $regex: s, $options: "i" } },
+//         ]),
+//       ];
+//     }
+
+//     const [clients, totalClients] = await Promise.all([
+//       ClientByEntry.find(filters)
+//         .sort({ createdAtByEntry: -1 })
+//         .skip((pageNum - 1) * pageSize)
+//         .limit(pageSize)
+//         .lean(),
+//       ClientByEntry.countDocuments(filters),
+//     ]);
+
+//     const totalPages = Math.max(Math.ceil(totalClients / pageSize), 1);
+
+//     return res.status(200).json({
+//       clients,
+//       totalClients,
+//       totalPages,
+//       page: pageNum,
+//       limit: pageSize,
+//     });
+//   } catch (err) {
+//     console.error("getAllClientsToCreate error:", err);
+//     return res
+//       .status(500)
+//       .json({ message: err.message || "Internal Server Error" });
+//   }
+// };
 export const getAllClientsToCreate = async (req, res) => {
   try {
     const {
       page = 1,
       limit = 5,
       search = "",
-      companyId, // required to scope by company
+      companyId,
     } = req.query;
 
     if (!companyId) {
       return res.status(400).json({ message: "companyId is required" });
     }
+
     const pageNum = Math.max(parseInt(page, 10) || 1, 1);
     const pageSize = Math.max(parseInt(limit, 10) || 5, 1);
+    const skip = (pageNum - 1) * pageSize;
 
-    const filters = {
+    const match = {
       companyId: new mongoose.Types.ObjectId(companyId),
       frontOfficeCreatedStatus: false,
     };
 
-    // search by name or mobileNumber
     if (search && search.trim()) {
       const s = search.trim();
-      // if digits, also try exact/startsWith match on mobile
       const isDigits = /^\d+$/.test(s);
-      filters.$or = [
+      match.$or = [
         { name: { $regex: s, $options: "i" } },
-        ...(isDigits ? [{ mobileNumber: { $regex: `^${s}`, $options: "i" } }] : [
-          { mobileNumber: { $regex: s, $options: "i" } },
-        ]),
+        ...(isDigits
+          ? [{ mobileNumber: { $regex: `^${s}`, $options: "i" } }]
+          : [{ mobileNumber: { $regex: s, $options: "i" } }]),
       ];
     }
 
     const [clients, totalClients] = await Promise.all([
-      ClientByEntry.find(filters)
-        .sort({ createdAtByEntry: -1 })
-        .skip((pageNum - 1) * pageSize)
-        .limit(pageSize)
-        .lean(),
-      ClientByEntry.countDocuments(filters),
+      ClientByEntry.aggregate([
+        { $match: match },
+        {
+          $addFields: {
+            urgentFlag: {
+              $cond: [{ $eq: ["$clientType.value", "Urgent Contact"] }, 0, 1],
+            },
+          },
+        },
+        { $sort: { urgentFlag: 1, createdAtByEntry: -1 } },
+        { $skip: skip },
+        { $limit: pageSize },
+        { $project: { urgentFlag: 0 } },
+      ]).exec(),
+      ClientByEntry.countDocuments(match),
     ]);
 
     const totalPages = Math.max(Math.ceil(totalClients / pageSize), 1);
@@ -367,6 +434,27 @@ export const updateClient = async (req, res) => {
     res.status(500).json({ message: "Server error while updating client" });
   }
 };
+const IST_TZ = "Asia/Kolkata";
+
+const fmtDate = new Intl.DateTimeFormat("en-GB", {
+  timeZone: IST_TZ,
+  day: "2-digit",
+  month: "2-digit",
+  year: "numeric",
+});
+
+const fmtTime = new Intl.DateTimeFormat("en-GB", {
+  timeZone: IST_TZ,
+  hour: "2-digit",
+  minute: "2-digit",
+  hour12: true,
+});
+
+const fmtDateTime = new Intl.DateTimeFormat("en-GB", {
+  timeZone: IST_TZ,
+  dateStyle: "short",
+  timeStyle: "medium",
+});
 
 export const downloadClientsData = async (req, res) => {
   const { startDate, endDate, userId,taken } = req.body;
@@ -593,13 +681,15 @@ doc
   };
   
   const drawTableRow = (doc, client, y, index) => {
-    const createdDate = new Date(client.createdAt).toLocaleDateString("en-GB");
-    const createdTime = new Date(client.createdAt).toLocaleTimeString("en-US", {
-      hour: "2-digit",
-      minute: "2-digit",
-      hour12: true, // 12-hour format (AM/PM)
-    });
-  
+    // const createdDate = new Date(client.createdAt).toLocaleDateString("en-GB");
+    // const createdTime = new Date(client.createdAt).toLocaleTimeString("en-US", {
+    //   hour: "2-digit",
+    //   minute: "2-digit",
+    //   hour12: true, // 12-hour format (AM/PM)
+    // });
+    const created = new Date(client.createdAt);
+      const createdDate = fmtDate.format(created);
+      const createdTime = fmtTime.format(created);
     // Truncate client name and tour name to 20 characters
     const truncatedName = client.name ? client.name.substring(0, 23) : "";
     const truncatedTourName = client.primaryTourName?.label

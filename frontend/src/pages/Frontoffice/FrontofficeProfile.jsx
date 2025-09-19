@@ -206,6 +206,8 @@ const FrontofficeProfile = () => {
       name: row.name || "",
       mobileNumber: row.mobileNumber || "",
       primaryTourName: row.primaryTourName || null,
+       connectedThrough: row.connectedThrough || null, // <-- add
+      clientType: row.clientType || null,             // <-- add
     });
     setClientByEntryId(row._id)
 

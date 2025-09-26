@@ -31,12 +31,51 @@ export const getexecutiveDetails = async (req, res) => {
     res.status(500).json({ message: "Server error", error: error.message });
   }
 };
+// export const getNewClientsByExecutive = async (req, res) => {
+//   try {
+//     const { executiveId, clientId, page = 1, limit = 4 } = req.query;
+
+//     const filters = {
+//       //executiveId,
+//       executiveId: new mongoose.Types.ObjectId(executiveId),
+//       executiveVisitedStatus: false,
+//       confirmedStatus: false,
+//       bookedStatus: false,
+//       ongoingStatus: false,
+//       completedStatus: false,
+//     };
+
+//     // Only add clientId to filters if provided
+//     if (clientId) filters.clientId = clientId;
+
+//     const skip = (page - 1) * limit;
+
+//     const clients = await Client.find(filters)
+//       .sort({ createdAt: -1, _id: -1 })
+//       .skip(skip)
+//       .limit(Number(limit));
+
+//     const totalClients = await Client.countDocuments(filters);
+//     const totalPages = Math.ceil(totalClients / limit);
+
+//     res.status(200).json({
+//       clients,
+//       totalPages,
+//       currentPage: Number(page),
+//       totalClients,
+//     });
+//   } catch (error) {
+//     console.error("Error fetching new clients:", error);
+//     res
+//       .status(500)
+//       .json({ message: "An error occurred while fetching new clients" });
+//   }
+// };
 export const getNewClientsByExecutive = async (req, res) => {
   try {
     const { executiveId, clientId, page = 1, limit = 4 } = req.query;
 
     const filters = {
-      //executiveId,
       executiveId: new mongoose.Types.ObjectId(executiveId),
       executiveVisitedStatus: false,
       confirmedStatus: false,
@@ -45,23 +84,36 @@ export const getNewClientsByExecutive = async (req, res) => {
       completedStatus: false,
     };
 
-    // Only add clientId to filters if provided
     if (clientId) filters.clientId = clientId;
 
-    const skip = (page - 1) * limit;
+    const pageNum = Math.max(parseInt(page, 10) || 1, 1);
+    const pageSize = Math.max(parseInt(limit, 10) || 4, 1);
+    const skip = (pageNum - 1) * pageSize;
 
-    const clients = await Client.find(filters)
-      .sort({ createdAt: -1, _id: -1 })
-      .skip(skip)
-      .limit(Number(limit));
+    const [clients, totalClients] = await Promise.all([
+      Client.aggregate([
+        { $match: filters },
+        {
+          $addFields: {
+            urgentFlag: {
+              $cond: [{ $eq: ["$clientType.value", "Urgent Contact"] }, 0, 1],
+            },
+          },
+        },
+        { $sort: { urgentFlag: 1, createdAt: -1, _id: -1 } },
+        { $skip: skip },
+        { $limit: pageSize },
+        { $project: { urgentFlag: 0 } },
+      ]).exec(),
+      Client.countDocuments(filters),
+    ]);
 
-    const totalClients = await Client.countDocuments(filters);
-    const totalPages = Math.ceil(totalClients / limit);
+    const totalPages = Math.max(Math.ceil(totalClients / pageSize), 1);
 
     res.status(200).json({
       clients,
       totalPages,
-      currentPage: Number(page),
+      currentPage: pageNum,
       totalClients,
     });
   } catch (error) {
